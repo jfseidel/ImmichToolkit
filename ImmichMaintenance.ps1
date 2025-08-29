@@ -1,11 +1,80 @@
 
-
+# PowerShell script for Immich Maintenance
 param (
     [switch]$RunBackup
 )
 
+# Helper: Enable/disable schedule fields
+function Set-ScheduleFieldStates {
+    # Daily
+    $DailyTimeTextBox.Visibility = if ($DailyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+    # Weekly
+    $WeeklyDayOfWeekDropdown.Visibility = if ($WeeklyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+    $WeeklyTimeTextBox.Visibility = if ($WeeklyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+    foreach ($child in $WeeklyDayOfWeekDropdown.Parent.Children) {
+        if ($child -is [System.Windows.Controls.TextBlock] -or $child -is [System.Windows.Controls.ComboBox]) {
+            $child.Visibility = if ($WeeklyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+        }
+    }
+    # Monthly
+    $MonthlyDayOfMonthDropdown.Visibility = if ($MonthlyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+    $MonthlyTimeTextBox.Visibility = if ($MonthlyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+    foreach ($child in $MonthlyDayOfMonthDropdown.Parent.Children) {
+        if ($child -is [System.Windows.Controls.TextBlock] -or $child -is [System.Windows.Controls.ComboBox]) {
+            $child.Visibility = if ($MonthlyScheduleCheckBox.IsChecked) { "Visible" } else { "Collapsed" }
+        }
+    }
+}
 # Set the location of the script to the current directory (TOOLKIT_LOCATION)
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# Path for schedule config
+$ScheduleConfigFile = Join-Path -Path $ScriptDirectory -ChildPath "schedule.cfg"
+
+# Helper: Load schedule config
+function Get-ScheduleConfig {
+function Get-ScheduleConfig {
+    if (Test-Path -Path $ScheduleConfigFile) {
+        try {
+            return Get-Content -Path $ScheduleConfigFile -Raw | ConvertFrom-Json
+        } catch {
+            return $null
+        }
+    } else {
+        return $null
+    }
+}
+
+# Helper: Save schedule config
+function Set-ScheduleConfig {
+    param (
+        [Parameter(Mandatory=$true)]
+        $ScheduleObject
+    )
+    $ScheduleObject | ConvertTo-Json -Depth 5 | Set-Content -Path $ScheduleConfigFile
+}
+# Set initial values and event handlers
+Clear-Status -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
+$scheduleConfig = Load-ScheduleConfig
+if ($scheduleConfig) {
+    $DailyScheduleCheckBox.IsChecked = $scheduleConfig.Daily.Enabled
+    $DailyTimeTextBox.Text = $scheduleConfig.Daily.Time
+    $WeeklyScheduleCheckBox.IsChecked = $scheduleConfig.Weekly.Enabled
+    $WeeklyDayOfWeekDropdown.SelectedIndex = $WeeklyDayOfWeekDropdown.Items.IndexOf($scheduleConfig.Weekly.Day)
+    $WeeklyTimeTextBox.Text = $scheduleConfig.Weekly.Time
+    $MonthlyScheduleCheckBox.IsChecked = $scheduleConfig.Monthly.Enabled
+    $MonthlyDayOfMonthDropdown.SelectedIndex = [int]$scheduleConfig.Monthly.Day - 1
+    $MonthlyTimeTextBox.Text = $scheduleConfig.Monthly.Time
+}
+
+Set-ScheduleFieldStates
+
+$DailyScheduleCheckBox.Add_Checked({ Set-ScheduleFieldStates })
+$DailyScheduleCheckBox.Add_Unchecked({ Set-ScheduleFieldStates })
+$WeeklyScheduleCheckBox.Add_Checked({ Set-ScheduleFieldStates })
+$WeeklyScheduleCheckBox.Add_Unchecked({ Set-ScheduleFieldStates })
+$MonthlyScheduleCheckBox.Add_Checked({ Set-ScheduleFieldStates })
+$MonthlyScheduleCheckBox.Add_Unchecked({ Set-ScheduleFieldStates })
+$TimeControls = $window.FindName("TimeControls")
 
 # Define the file names
 $ConfigFile = "Immich.cfg"
@@ -47,7 +116,16 @@ function New-TempDirectory {
     return $tempDir
 }
 
-# Helper function to add new status text and scroll to the end
+function Add-StatusLog {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Message,
+        [Parameter(Mandatory=$true)]
+        $StatusTextControl
+    )
+    $StatusTextControl.AppendText("$Message`r`n")
+    $StatusTextControl.ScrollToEnd()
+}
 function Add-StatusText {
     param (
         [Parameter(Mandatory=$true)]
@@ -72,7 +150,7 @@ function Clear-Status {
 }
 
 # Load the configuration from the Immich.cfg file
-function Load-ImmichConfig {
+function Get-ImmichConfig {
     try {
         if (Test-Path -Path $ConfigPath) {
             $configContent = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
@@ -88,7 +166,6 @@ function Load-ImmichConfig {
 }
 
 # Save the configuration back to the Immich.cfg file
-function Save-ImmichConfig {
     param (
         [Parameter(Mandatory=$true)]
         [PSCustomObject]$ConfigObject
@@ -114,9 +191,7 @@ function Backup-Database {
         [PSObject]$ProgressBarControl
     )
     
-    $immichRoot = $Config.DEFAULT_PATHS.IMMICH_ROOT
     $backupPath = $Config.DEFAULT_PATHS.IMMICH_BACKUP
-    $dbDataLocation = $Config.DEFAULT_PATHS.DB_DATA_LOCATION
     $databasePassword = $Config.IMMICH_SERVER.DATABASE_PASSWORD
 
     $PostgresContainer = "immich_postgres"
@@ -243,7 +318,7 @@ function Restore-Database {
     }
 }
 
-function Schedule-BackupTask {
+function Register-BackupTask {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Interval,
@@ -336,12 +411,15 @@ function Get-BackupFiles {
         [PSCustomObject]$Config
     )
     $backupPath = $Config.DEFAULT_PATHS.IMMICH_BACKUP
+    if (-not (Test-Path -Path $backupPath)) {
+        New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+    }
     $backupFiles = Get-ChildItem -Path $backupPath -Filter "*.zip" | Sort-Object CreationTime -Descending
     $fileNames = $backupFiles | ForEach-Object { $_.BaseName }
     return $fileNames
 }
 
-function Create-UpdateSnapshot {
+function New-UpdateSnapshot {
     param(
         [Parameter(Mandatory=$true)]
         [PSCustomObject]$Config,
@@ -351,8 +429,8 @@ function Create-UpdateSnapshot {
         [PSObject]$ProgressBarControl
     )
 
-    $immichRoot = $Config.DEFAULT_PATHS.IMMICH_ROOT
-    $dbDataLocation = $Config.DEFAULT_PATHS.DB_DATA_LOCATION
+    # Removed unused variable: $immichRoot
+    # Removed unused variable: $dbDataLocation
     $snapshotZipPath = Join-Path $immichRoot "UpdateSnapshot.zip"
     $tempDir = New-TempDirectory -Name "ImmichUpdateSnapshotTemp"
     
@@ -426,7 +504,7 @@ function Update-Immich {
     }
 }
 
-function Rollback-Update {
+function Restore-Update {
     param(
         [Parameter(Mandatory=$true)]
         [PSCustomObject]$Config,
@@ -435,7 +513,7 @@ function Rollback-Update {
         [Parameter(Mandatory=$true)]
         [PSObject]$ProgressBarControl
     )
-    $immichRoot = $Config.DEFAULT_PATHS.IMMICH_ROOT
+    # Removed unused variable: $immichRoot
     $snapshotZipPath = Join-Path $immichRoot "UpdateSnapshot.zip"
     $tempRollbackDir = New-TempDirectory -Name "ImmichRollbackTemp"
     
@@ -490,12 +568,15 @@ $RestoreButton = $window.FindName("RestoreButton")
 $UpdateButton = $window.FindName("UpdateButton")
 $RollbackButton = $window.FindName("RollbackButton")
 $BackupNumberTextBox = $window.FindName("BackupNumberTextBox")
-$IntervalDropdown = $window.FindName("IntervalDropdown")
-$DayOfWeekDropdown = $window.FindName("DayOfWeekDropdown")
-$DayOfMonthDropdown = $window.FindName("DayOfMonthDropdown")
-$TimeTextBox = $window.FindName("TimeTextBox")
-$AddScheduleButton = $window.FindName("AddScheduleButton")
-$RemoveScheduleButton = $window.FindName("RemoveScheduleButton")
+$DailyScheduleCheckBox = $window.FindName("DailyScheduleCheckBox")
+$DailyTimeTextBox = $window.FindName("DailyTimeTextBox")
+$WeeklyScheduleCheckBox = $window.FindName("WeeklyScheduleCheckBox")
+$WeeklyDayOfWeekDropdown = $window.FindName("WeeklyDayOfWeekDropdown")
+$WeeklyTimeTextBox = $window.FindName("WeeklyTimeTextBox")
+$MonthlyScheduleCheckBox = $window.FindName("MonthlyScheduleCheckBox")
+$MonthlyDayOfMonthDropdown = $window.FindName("MonthlyDayOfMonthDropdown")
+$MonthlyTimeTextBox = $window.FindName("MonthlyTimeTextBox")
+$UpdateScheduleButton = $window.FindName("UpdateScheduleButton")
 $RestoreFileDropdown = $window.FindName("RestoreFileDropdown")
 $StatusText = $window.FindName("StatusText")
 $ProgressBar = $window.FindName("ProgressBar")
@@ -524,20 +605,26 @@ $IntervalDropdown.Add_SelectionChanged({
     if ($IntervalDropdown.Text -eq "Weekly") {
         $WeeklyControls.Visibility = "Visible"
         $MonthlyControls.Visibility = "Collapsed"
+        $TimeControls.Visibility = "Visible"
     } elseif ($IntervalDropdown.Text -eq "Monthly") {
         $WeeklyControls.Visibility = "Collapsed"
         $MonthlyControls.Visibility = "Visible"
+        $TimeControls.Visibility = "Visible"
+    } elseif ($IntervalDropdown.Text -eq "Daily") {
+        $WeeklyControls.Visibility = "Collapsed"
+        $MonthlyControls.Visibility = "Collapsed"
+        $TimeControls.Visibility = "Visible"
     } else {
         $WeeklyControls.Visibility = "Collapsed"
         $MonthlyControls.Visibility = "Collapsed"
+        $TimeControls.Visibility = "Collapsed"
     }
 })
 
-# Populate DayOfMonthDropdown
 for ($i = 1; $i -le 31; $i++) {
-    $DayOfMonthDropdown.Items.Add($i)
+    $MonthlyDayOfMonthDropdown.Items.Add($i)
 }
-$DayOfMonthDropdown.SelectedIndex = 0
+$MonthlyDayOfMonthDropdown.SelectedIndex = 0
 
 # --- Event Handlers ---
 
@@ -591,42 +678,35 @@ $BackupButton.Add_Click({
     }
 })
 
-$AddScheduleButton.Add_Click({
+
+
+$UpdateScheduleButton.Add_Click({
     Clear-Status -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
     $BackupGroupBox.IsEnabled = $false
     $ScheduledBackupGroupBox.IsEnabled = $false
     $RestoreGroupBox.IsEnabled = $false
     $UpdateRollbackPanel.IsEnabled = $false
-    
     try {
-        $interval = $IntervalDropdown.Text
-        $time = $TimeTextBox.Text
-        
-        $day = $null
-        if ($interval -eq "Weekly") {
-            $day = $DayOfWeekDropdown.Text
-        } elseif ($interval -eq "Monthly") {
-            $day = $DayOfMonthDropdown.Text
+        $scheduleConfig = @{
+            Daily = @{ Enabled = $DailyScheduleCheckBox.IsChecked; Time = $DailyTimeTextBox.Text }
+            Weekly = @{ Enabled = $WeeklyScheduleCheckBox.IsChecked; Day = $WeeklyDayOfWeekDropdown.Text; Time = $WeeklyTimeTextBox.Text }
+            Monthly = @{ Enabled = $MonthlyScheduleCheckBox.IsChecked; Day = $MonthlyDayOfMonthDropdown.Text; Time = $MonthlyTimeTextBox.Text }
         }
+        Save-ScheduleConfig -ScheduleObject $scheduleConfig
 
-        Schedule-BackupTask -Interval $interval -Day $day -Time $time -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
-    } finally {
-        $BackupGroupBox.IsEnabled = $true
-        $ScheduledBackupGroupBox.IsEnabled = $true
-        $RestoreGroupBox.IsEnabled = $true
-        $UpdateRollbackPanel.IsEnabled = $true
-    }
-})
-
-$RemoveScheduleButton.Add_Click({
-    Clear-Status -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
-    $BackupGroupBox.IsEnabled = $false
-    $ScheduledBackupGroupBox.IsEnabled = $false
-    $RestoreGroupBox.IsEnabled = $false
-    $UpdateRollbackPanel.IsEnabled = $false
-    
-    try {
+        # Remove all previous scheduled tasks for this script
         Remove-ScheduledTask -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
+
+        # Schedule new tasks
+        if ($scheduleConfig.Daily.Enabled) {
+            Schedule-BackupTask -Interval "Daily" -Time $scheduleConfig.Daily.Time -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
+        }
+        if ($scheduleConfig.Weekly.Enabled) {
+            Schedule-BackupTask -Interval "Weekly" -Day $scheduleConfig.Weekly.Day -Time $scheduleConfig.Weekly.Time -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
+        }
+        if ($scheduleConfig.Monthly.Enabled) {
+            Schedule-BackupTask -Interval "Monthly" -Day $scheduleConfig.Monthly.Day -Time $scheduleConfig.Monthly.Time -StatusTextControl $StatusText -ProgressBarControl $ProgressBar
+        }
     } finally {
         $BackupGroupBox.IsEnabled = $true
         $ScheduledBackupGroupBox.IsEnabled = $true
