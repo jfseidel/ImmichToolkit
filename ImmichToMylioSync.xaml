@@ -1,0 +1,74 @@
+<Window x:Class="ImmichToMylioSync.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Immich to Mylio Sync" Height="650" Width="600">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Section 1 Controls -->
+        <GroupBox Grid.Row="0" Header="Section 1: Create IMMICH XMP Files" Margin="0,0,0,10">
+            <StackPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Immich Upload Folder:" Width="150"/>
+                    <TextBox x:Name="UploadFolderTextBox" IsReadOnly="True"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Image File Types:" Width="150"/>
+                    <TextBox x:Name="FileTypesTextBox" ToolTip="Enter comma-separated image file extensions (e.g., .jpg,.dng) to process"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="IP Address:" Width="150"/>
+                    <TextBox x:Name="IpAddressTextBox" IsReadOnly="True"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Port:" Width="150"/>
+                    <TextBox x:Name="PortTextBox" IsReadOnly="True" Width="100" HorizontalAlignment="Left"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="API Key:" Width="150"/>
+                    <TextBox x:Name="ApiKeyTextBox" Width="300" ToolTip="Enter the Immich API key for accessing asset metadata"/>
+                    <Button x:Name="SaveApiKeyButton" Content="Save API Key" Width="100" Margin="5,0,0,0" ToolTip="Save the API key to Immich.cfg"/>
+                </DockPanel>
+                <CheckBox x:Name="DryRunCheckBox" Content="Dry Run" Margin="0,5" ToolTip="Check to simulate operations without making changes"/>
+                <StackPanel Orientation="Horizontal" Margin="0,5">
+                    <Button x:Name="CreateXmpButton" Content="Create Immich XMPs" Width="120" Margin="0,0,5,0" ToolTip="Create XMP sidecar files with Immich metadata for images"/>
+                    <Button x:Name="DeleteXmpButton" Content="Delete Immich XMPs" Width="120" ToolTip="Delete XMP sidecar files matching images in UPLOAD_LOCATION"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+        
+        <!-- Section 2 Controls -->
+        <GroupBox Grid.Row="1" Header="Section 2: Copy to Mylio Inbox" Margin="0,0,0,10">
+            <StackPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Last Run:" Width="150"/>
+                    <DatePicker x:Name="LastRunDatePicker" ToolTip="Select the date to filter images by creation time for copying to Mylio"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Source Folder:" Width="150"/>
+                    <TextBox x:Name="UploadFolderTextBox2" IsReadOnly="True"/>
+                </DockPanel>
+                <DockPanel Margin="0,5">
+                    <Label Content="Destination Folder:" Width="150"/>
+                    <TextBox x:Name="MylioInboxTextBox" IsReadOnly="True"/>
+                </DockPanel>
+                <Button x:Name="CopyToMylioButton" Content="Copy to Mylio Inbox" Width="120" Margin="0,5" ToolTip="Copy images and XMP files newer than Last Run to MYLIO_INBOX"/>
+            </StackPanel>
+        </GroupBox>
+        
+        <!-- Status Window (Log Display) -->
+        <TextBox x:Name="LogTextBox" Grid.Row="2" IsReadOnly="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="0,0,0,5"/>
+        
+        <!-- Progress Bar -->
+        <ProgressBar x:Name="ProgressBar" Grid.Row="3" Height="20" Margin="0,0,0,5"/>
+        
+        <!-- Log Info -->
+        <TextBlock Grid.Row="4" Text="Logs are saved to Immich.log" Margin="0,0,0,0"/>
+    </Grid>
+</Window>

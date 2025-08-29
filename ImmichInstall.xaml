@@ -1,0 +1,107 @@
+Here is the final, thoroughly checked version of the ImmichInstall.xaml file. No changes were made to this file since the last time, as all the new functionality was handled in the PowerShell script.
+
+This XAML code defines the user interface for the Immich installer, including all the text boxes, buttons, labels, and the progress bar. It is designed to be paired with the ImmichInstall.ps1 script to create a fully functional, easy-to-use application.
+
+XML
+
+<Window x:Class="Immich.ImmichInstall"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Immich Installer" Height="700" Width="400" ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <TextBlock Text="Default Paths" FontWeight="Bold" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,5"/>
+        
+        <TextBlock Text="Immich Root Directory:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="1" Margin="0,0,0,5">
+            <TextBox x:Name="IMMICH_ROOT_TextBox" Width="220" IsReadOnly="False" ToolTip="This is the main directory where all Immich files will be stored. It must be on a local drive."/>
+            <Button x:Name="IMMICH_ROOT_Button" Content="Browse" Margin="5,0,0,0" Width="50" ToolTip="Browse for the Immich root directory."/>
+        </StackPanel>
+        
+        <TextBlock Text="External Library Path:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5">
+            <TextBox x:Name="EXTERNAL_LIBRARY_TextBox" Width="220" IsReadOnly="False" ToolTip="The path to an existing photo library that you want Immich to scan (e.g., your Windows Pictures folder)."/>
+            <Button x:Name="EXTERNAL_LIBRARY_Button" Content="Browse" Margin="5,0,0,0" Width="50" ToolTip="Browse for the external library path."/>
+        </StackPanel>
+        <Button x:Name="AddLibraryButton" Content="Add external library to Immich" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Margin="0,0,0,5" Width="275" ToolTip="Opens a text file to add multiple external library paths."/>
+
+        <TextBlock Text="Upload Location:" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBlock x:Name="UPLOAD_LOCATION_TextBlock" Grid.Row="4" Grid.Column="1" Margin="0,0,0,5" Text="C:\Immich\library" ToolTip="The directory where Immich will store new uploads."/>
+        
+        <TextBlock Text="DB Data Location:" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBlock x:Name="DB_DATA_LOCATION_TextBlock" Grid.Row="5" Grid.Column="1" Margin="0,0,0,5" Text="C:\Immich\postgres" ToolTip="The directory where Immich's database files will be stored."/>
+        
+        <TextBlock Text="Immich Backup:" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBlock x:Name="IMMICH_BACKUP_TextBlock" Grid.Row="6" Grid.Column="1" Margin="0,0,0,5" Text="C:\Immich\Backup" ToolTip="The directory for database backups."/>
+        
+        <TextBlock Text="Toolkit Location:" Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBlock x:Name="TOOLKIT_LOCATION_TextBlock" Grid.Row="7" Grid.Column="1" Margin="0,0,0,5" Text="C:\Immich\ImmichToolkit" ToolTip="The directory where this script and other toolkit files will be copied."/>
+        
+        <TextBlock Text="Immich Server Settings" FontWeight="Bold" Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,5"/>
+        
+        <TextBlock Text="IP Address:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="IP_ADDRESS_TextBox" Grid.Row="9" Grid.Column="1" Margin="0,0,0,5" ToolTip="The IP address used to access Immich from other devices. By default, it uses your local machine's IP address."/>
+        
+        <TextBlock Text="Port:" Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="PORT_TextBox" Grid.Row="10" Grid.Column="1" Margin="0,0,0,5" ToolTip="The network port for Immich. The default port is 2283."/>
+        
+        <TextBlock Text="API Key:" Grid.Row="11" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="API_KEY_TextBox" Grid.Row="11" Grid.Column="1" Margin="0,0,0,5" ToolTip="The API key for authentication. You can generate one after the installation is complete."/>
+        
+        <TextBlock Text="Database Password:" Grid.Row="12" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="DATABASE_PASSWORD_TextBox" Grid.Row="12" Grid.Column="1" Margin="0,0,0,5" ToolTip="The password for the PostgreSQL database. This should be a strong, unique password."/>
+        
+        <TextBlock Text="General Settings" FontWeight="Bold" Grid.Row="13" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,5"/>
+        
+        <TextBlock Text="Dry Run:" Grid.Row="14" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <CheckBox x:Name="DRY_RUN_CheckBox" Grid.Row="14" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,5" ToolTip="When checked, the script will simulate a run without making any actual changes."/>
+        
+        <TextBlock Text="Backup Number:" Grid.Row="15" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="BACKUP_NUMBER_TextBox" Grid.Row="15" Grid.Column="1" Margin="0,0,0,5" ToolTip="The number of database backups to retain."/>
+        
+        <TextBlock Text="Log Number:" Grid.Row="16" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+        <TextBox x:Name="LOG_NUMBER_TextBox" Grid.Row="16" Grid.Column="1" Margin="0,0,0,5" ToolTip="The number of log files to retain."/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="17" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" Margin="0,10,0,0">
+            <Button x:Name="InstallButton" Content="Install" Width="75" Margin="5" ToolTip="Starts the Immich installation process."/>
+            <Button x:Name="SaveButton" Content="Save" Width="75" Margin="5" ToolTip="Saves the current configuration to the Immich.cfg file without running the installation."/>
+            <Button x:Name="CancelButton" Content="Cancel" Width="75" Margin="5" ToolTip="Stops the installation and rolls back all changes, deleting all files created during the process."/>
+            <Button x:Name="CloseButton" Content="Close" Width="75" Margin="5" ToolTip="Closes the installer."/>
+            <Button x:Name="OpenFolderButton" Content="Open Immich Folder" Width="150" Margin="5" IsEnabled="False" ToolTip="Opens the main Immich directory."/>
+        </StackPanel>
+        
+        <Label Content="Status:" FontWeight="Bold" Grid.Row="18" Grid.Column="0" Margin="0,10,0,0"/>
+        <TextBox x:Name="StatusTextBox" Grid.Row="19" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,5"
+                 IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Height="100" ToolTip="Displays the status of the installation process."/>
+        
+        <Label Content="Progress:" FontWeight="Bold" Grid.Row="20" Grid.Column="0" Margin="0,0,0,5"/>
+        <ProgressBar x:Name="ProgressBar" Grid.Row="20" Grid.Column="1" Margin="0,5,0,0" Height="20" Maximum="100" ToolTip="Shows the overall progress of the installation."/>
+    </Grid>
+</Window>
